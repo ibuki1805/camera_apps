@@ -1,0 +1,10 @@
+<library path="lib/libobject_detector_nodelet">
+    <class name="camera_apps/ObjectDetectorNodelet"
+      type="camera_apps::ObjectDetectorNodelet"
+     base_class_type="nodelet::Nodelet">
+    <description>
+        ObjectDetectorNodelet.
+    </description>
+  </class>
+
+</library>
