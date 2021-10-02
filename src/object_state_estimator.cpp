@@ -39,6 +39,7 @@ namespace camera_apps
             for(int x=bbox_.xmin; y<bbox_.xmax; x++)
             {
                 object_pcl_->points[index] = input_pcl_->points[y * input_pcl_->width + x];
+                std::cout << "hi" << std::endl:
                 index++;
             }
         }
