@@ -8,3 +8,13 @@
   </class>
 
 </library>
+<library path="lib/libobject_state_estimator_nodelet">
+    <class name="camera_apps/ObjectStateEstimatorNodelet"
+      type="camera_apps::ObjectStateEstimatorNodelet"
+     base_class_type="nodelet::Nodelet">
+    <description>
+        ObjectStateEstimatorNodelet.
+    </description>
+  </class>
+
+</library>

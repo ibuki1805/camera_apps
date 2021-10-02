@@ -10,6 +10,7 @@ namespace camera_apps
 
         image_transport::ImageTransport it(nh);
         image_sub_ = it.subscribe(camera_topic_name_, 1, &ObjectDetector::image_callback, this);
+        bbox_pub_ = nh.advertise<camera_apps_msgs::BoundingBox>("/bounding_box", 5);
 
         set_network();
     }
@@ -21,8 +22,6 @@ namespace camera_apps
             cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
             input_image_ = cv_ptr->image;
             object_detect(input_image_);
-            // cv::imshow("image", input_image_);
-            // cv::waitKey(1);
         }
         catch(cv_bridge::Exception &e){
             ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -61,6 +60,9 @@ namespace camera_apps
 
     void ObjectDetector::object_detect(cv::Mat &image)
     {
+        // bboxes_.bouding_boxes.clear();
+        bbox_.header.stamp = ros::Time::now();
+
         cv::Mat blob = cv::dnn::blobFromImage(image, 1, cv::Size(300, 300));
         net_.setInput(blob);
         cv::Mat pred = net_.forward();
@@ -75,20 +77,46 @@ namespace camera_apps
                 int x1 = int(pred_mat.at<float>(i, 5) * image.cols);
                 int y1 = int(pred_mat.at<float>(i, 6) * image.rows);
 
-                cv::Rect object(x0, y0, x1-x0, y1-y0);
-                cv::rectangle(image, object, cv::Scalar(255, 255, 255), 2);
                 int id = int(pred_mat.at<float>(i, 1));
-                std::string label = class_names_[id-1] + ":" + std::to_string(conf).substr(0, 4);
-
-                int baseline = 0;
-                cv::Size  label_size = cv::getTextSize(label,
-                        cv::FONT_HERSHEY_SIMPLEX,0.5, 1, &baseline);
-                cv::putText(image, label, cv::Point(x0, y0),
-                        cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 0), 2);
+                std::string class_name = class_names_[id-1];
+                std::string label = class_name + ":" + std::to_string(conf).substr(0, 4);
+                if(id == 1){
+                    send_bbox(x0, x1, y0, y1, conf, id, class_name);
+                    draw_bbox(image, x0, y0, x1, y1, label);
+                }
             }
         }
+        // bboxes_pub_.publish(bboxes_);
         cv::imshow("detected_image", image);
         cv::waitKey(1);
+    }
+
+    void ObjectDetector::draw_bbox(cv::Mat &image, int x0, int y0, int x1, int y1, std::string label)
+    {
+        cv::Rect object(x0, y0, x1-x0, y1-y0);
+        cv::rectangle(image, object, cv::Scalar(255, 255, 255), 2);
+
+        int baseline = 0;
+        cv::Size  label_size = cv::getTextSize(label,
+                cv::FONT_HERSHEY_SIMPLEX,0.5, 1, &baseline);
+        cv::putText(image, label, cv::Point(x0, y0),
+                cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 0), 2);
+    }
+
+    void ObjectDetector::send_bbox(int x0, int x1, int y0, int y1, float conf,
+            int id, std::string class_name)
+    {
+        // camera_apps_msgs::BoundingBox bbox;
+        // bbox.header.stamp = ros::Time::now():
+        bbox_.confidence = conf;
+        bbox_.xmin = x0;
+        bbox_.xmax = x1; 
+        bbox_.ymin = y0;
+        bbox_.ymax = y1;
+        bbox_.id = id;
+        bbox_.label = class_name;
+        // bboxes_.bouding_boxes.push_back(bbox);
+        bbox_pub_.publish(bbox_);
     }
 
     void ObjectDetector::process()

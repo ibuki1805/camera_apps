@@ -9,11 +9,13 @@ find_package(catkin REQUIRED COMPONENTS
     image_transport
     pluginlib
     nodelet
+    camera_apps_msgs
+    pcl_ros
 )
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES camera_apps
+ INCLUDE_DIRS include
+ LIBRARIES camera_apps
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -24,8 +26,8 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
 add_executable(object_detector_node src/object_detector_node.cpp src/object_detector.cpp)
+add_dependencies(object_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(
     object_detector_node
     ${catkin_LIBRARIES}
@@ -37,5 +39,20 @@ add_library(object_detector_nodelet src/object_detector.cpp src/object_detector_
 target_link_libraries(object_detector_nodelet
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
+)
+
+add_executable(object_state_estimator_node src/object_state_estimator_node.cpp src/object_state_estimator.cpp)
+add_dependencies(object_state_estimator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(
+    object_state_estimator_node
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    )
+
+add_library(object_state_estimator_nodelet src/object_state_estimator.cpp src/object_state_estimator_nodelet.cpp)
+
+target_link_libraries(object_state_estimator_nodelet
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
 )
 

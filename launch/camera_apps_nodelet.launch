@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="manager_name" default="nodelet_manager" />
+  <!-- <arg name="manager_threads" default="4" /> -->
+
+  <node pkg="nodelet" type="nodelet" name="$(arg manager_name)" args="manager" output="screen">
+    <!-- <param name="num_worker_threads" value="$(arg manager_threads)" /> -->
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="object_detector_nodelet"
+      args="load camera_apps/ObjectDetectorNodelet $(arg manager_name)" >
+    <!-- <remap from="chatter" to="chatter_alt" /> -->
+    <param name="model_path" value="$(find camera_apps)/model" />
+  </node>    
+
+  <node pkg="nodelet" type="nodelet" name="object_state_estimator_nodelet"
+      args="load camera_apps/ObjectStateEstimatorNodelet $(arg manager_name)" >
+  </node>    
+
+</launch>

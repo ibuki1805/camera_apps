@@ -11,6 +11,9 @@
 #include <fstream>
 #include <sstream>
 
+#include <camera_apps_msgs/BoundingBox.h>
+// #include <camera_apps_msgs/BoundingBoxes.h>
+
 namespace camera_apps
 {
     class ObjectDetector
@@ -23,6 +26,9 @@ namespace camera_apps
             std::vector<std::string> read_file(std::string filename, char delimiter='\n');
             void set_network();
             void object_detect(cv::Mat &image);
+            void draw_bbox(cv::Mat &image, int x0, int y0, int x1, int y1, std::string label);
+            void send_bbox(int x0, int x1, int y0, int y1, float conf, int id,
+                    std::string class_name);
 
             std::string camera_topic_name_;
             std::string model_path_;
@@ -33,9 +39,11 @@ namespace camera_apps
             cv::Mat input_image_;
             cv::Mat detection_image_;
             cv::dnn::Net net_;
+            camera_apps_msgs::BoundingBox bbox_;
 
             image_transport::Subscriber image_sub_;
             image_transport::Publisher image_pub_;
+            ros::Publisher bbox_pub_;
     };
 }
 #endif
