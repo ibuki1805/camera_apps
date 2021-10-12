@@ -6,21 +6,25 @@ namespace camera_apps
     {
         pnh.param("camera_topic_name", camera_topic_name_, std::string("/camera/color/image_raw"));
         pnh.getParam("model_path", model_path_);
-        pnh.param("conf_threshold", conf_threshold_, 0.2);
+        pnh.param("conf_threshold", conf_threshold_, 0.4);
 
         image_transport::ImageTransport it(nh);
         image_sub_ = it.subscribe(camera_topic_name_, 1, &ObjectDetector::image_callback, this);
-        bbox_pub_ = nh.advertise<camera_apps_msgs::BoundingBox>("/bounding_box", 5);
+        image_pub_ = it.advertise("/detected_image", 1);
+        bbox_pub_ = nh.advertise<camera_apps_msgs::BoundingBox>("/bounding_box", 1);
 
         set_network();
     }
 
     void ObjectDetector::image_callback(const sensor_msgs::ImageConstPtr &msg)
     {
+        // std::cout << "stamp" << msg->header.stamp << std::endl;
+
         cv_bridge::CvImagePtr cv_ptr;
         try{
             cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
             input_image_ = cv_ptr->image;
+            msg_stamp_ = msg->header.stamp;
             object_detect(input_image_);
         }
         catch(cv_bridge::Exception &e){
@@ -33,10 +37,6 @@ namespace camera_apps
     {
         std::vector<std::string> result;
         std::ifstream fin(filename);
-        if (!fin){
-            std::cout << "ファイルを開けませんでした。" << std::endl;
-            exit(1);
-        }
         std::string line;
         while (getline(fin, line)) {
             std::istringstream stream(line);
@@ -60,14 +60,14 @@ namespace camera_apps
 
     void ObjectDetector::object_detect(cv::Mat &image)
     {
-        // bboxes_.bouding_boxes.clear();
-        bbox_.header.stamp = ros::Time::now();
+        bbox_.header.stamp = msg_stamp_;
 
         cv::Mat blob = cv::dnn::blobFromImage(image, 1, cv::Size(300, 300));
         net_.setInput(blob);
         cv::Mat pred = net_.forward();
         cv::Mat pred_mat(pred.size[2], pred.size[3], CV_32F, pred.ptr<float>());
 
+        // for(int i=0; i<1; i++){
         for(int i=0; i<pred_mat.rows; i++){
             float conf = pred_mat.at<float>(i, 2);
 
@@ -86,9 +86,10 @@ namespace camera_apps
                 }
             }
         }
-        // bboxes_pub_.publish(bboxes_);
-        cv::imshow("detected_image", image);
-        cv::waitKey(1);
+        // cv::imshow("detected_image", image);
+        // cv::waitKey(1);
+        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+        image_pub_.publish(msg);
     }
 
     void ObjectDetector::draw_bbox(cv::Mat &image, int x0, int y0, int x1, int y1, std::string label)
@@ -106,8 +107,6 @@ namespace camera_apps
     void ObjectDetector::send_bbox(int x0, int x1, int y0, int y1, float conf,
             int id, std::string class_name)
     {
-        // camera_apps_msgs::BoundingBox bbox;
-        // bbox.header.stamp = ros::Time::now():
         bbox_.confidence = conf;
         bbox_.xmin = x0;
         bbox_.xmax = x1; 
@@ -115,7 +114,6 @@ namespace camera_apps
         bbox_.ymax = y1;
         bbox_.id = id;
         bbox_.label = class_name;
-        // bboxes_.bouding_boxes.push_back(bbox);
         bbox_pub_.publish(bbox_);
     }
 

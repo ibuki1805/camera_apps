@@ -12,7 +12,6 @@
 #include <sstream>
 
 #include <camera_apps_msgs/BoundingBox.h>
-// #include <camera_apps_msgs/BoundingBoxes.h>
 
 namespace camera_apps
 {
@@ -37,6 +36,7 @@ namespace camera_apps
             std::vector<std::string> class_names_;
 
             cv::Mat input_image_;
+            ros::Time msg_stamp_;
             cv::Mat detection_image_;
             cv::dnn::Net net_;
             camera_apps_msgs::BoundingBox bbox_;
