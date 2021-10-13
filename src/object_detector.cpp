@@ -11,20 +11,21 @@ namespace camera_apps
         image_transport::ImageTransport it(nh);
         image_sub_ = it.subscribe(camera_topic_name_, 1, &ObjectDetector::image_callback, this);
         image_pub_ = it.advertise("/detected_image", 1);
-        bbox_pub_ = nh.advertise<camera_apps_msgs::BoundingBox>("/bounding_box", 1);
+        bboxes_pub_ = nh.advertise<camera_apps_msgs::BoundingBoxes>("/bounding_boxes", 1);
+        // bbox_pub_ = nh.advertise<camera_apps_msgs::BoundingBox>("/bounding_box", 1);
 
         set_network();
     }
 
     void ObjectDetector::image_callback(const sensor_msgs::ImageConstPtr &msg)
     {
-        // std::cout << "stamp" << msg->header.stamp << std::endl;
 
         cv_bridge::CvImagePtr cv_ptr;
         try{
             cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
             input_image_ = cv_ptr->image;
-            msg_stamp_ = msg->header.stamp;
+            bboxes_.header.stamp = msg->header.stamp;
+            // msg_stamp_ = msg->header.stamp;
             object_detect(input_image_);
         }
         catch(cv_bridge::Exception &e){
@@ -48,6 +49,7 @@ namespace camera_apps
         fin.close();
         return result;
     }
+
     void ObjectDetector::set_network()
     {
         std::string proto_path = model_path_ + "/ssd_mobilenet_v2_coco.pbtxt";
@@ -60,7 +62,8 @@ namespace camera_apps
 
     void ObjectDetector::object_detect(cv::Mat &image)
     {
-        bbox_.header.stamp = msg_stamp_;
+        bboxes_.bounding_boxes.clear();
+        // bbox_.header.stamp = msg_stamp_;
 
         cv::Mat blob = cv::dnn::blobFromImage(image, 1, cv::Size(300, 300));
         net_.setInput(blob);
@@ -81,14 +84,14 @@ namespace camera_apps
                 std::string class_name = class_names_[id-1];
                 std::string label = class_name + ":" + std::to_string(conf).substr(0, 4);
                 if(id == 1){
-                    send_bbox(x0, x1, y0, y1, conf, id, class_name);
+                    set_bbox(x0, x1, y0, y1, conf, id, class_name);
+                    // send_bbox(x0, x1, y0, y1, conf, id, class_name);
                     draw_bbox(image, x0, y0, x1, y1, label);
                 }
             }
         }
-        // cv::imshow("detected_image", image);
-        // cv::waitKey(1);
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+        bboxes_pub_.publish(bboxes_);
         image_pub_.publish(msg);
     }
 
@@ -104,17 +107,33 @@ namespace camera_apps
                 cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 0), 2);
     }
 
-    void ObjectDetector::send_bbox(int x0, int x1, int y0, int y1, float conf,
+    // void ObjectDetector::send_bbox(int x0, int x1, int y0, int y1, float conf,
+    //         int id, std::string class_name)
+    // {
+    //     bbox_.confidence = conf;
+    //     bbox_.xmin = x0;
+    //     bbox_.xmax = x1; 
+    //     bbox_.ymin = y0;
+    //     bbox_.ymax = y1;
+    //     bbox_.id = id;
+    //     bbox_.label = class_name;
+    //     bbox_pub_.publish(bbox_);
+    // }
+
+    void ObjectDetector::set_bbox(int x0, int x1, int y0, int y1, float conf,
             int id, std::string class_name)
     {
-        bbox_.confidence = conf;
-        bbox_.xmin = x0;
-        bbox_.xmax = x1; 
-        bbox_.ymin = y0;
-        bbox_.ymax = y1;
-        bbox_.id = id;
-        bbox_.label = class_name;
-        bbox_pub_.publish(bbox_);
+        camera_apps_msgs::BoundingBox bbox;
+        
+        bbox.confidence = conf;
+        bbox.xmin = x0;
+        bbox.xmax = x1; 
+        bbox.ymin = y0;
+        bbox.ymax = y1;
+        bbox.id = id;
+        bbox.label = class_name;
+
+        bboxes_.bounding_boxes.push_back(bbox);
     }
 
     void ObjectDetector::process()

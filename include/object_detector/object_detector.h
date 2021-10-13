@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include <camera_apps_msgs/BoundingBox.h>
+#include <camera_apps_msgs/BoundingBoxes.h>
 
 namespace camera_apps
 {
@@ -26,8 +27,8 @@ namespace camera_apps
             void set_network();
             void object_detect(cv::Mat &image);
             void draw_bbox(cv::Mat &image, int x0, int y0, int x1, int y1, std::string label);
-            void send_bbox(int x0, int x1, int y0, int y1, float conf, int id,
-                    std::string class_name);
+            void set_bbox(int x0, int x1, int y0, int y1, float conf, int id, std::string class_name);
+            // void send_bbox(int x0, int x1, int y0, int y1, float conf, int id, std::string class_name);
 
             std::string camera_topic_name_;
             std::string model_path_;
@@ -36,14 +37,16 @@ namespace camera_apps
             std::vector<std::string> class_names_;
 
             cv::Mat input_image_;
-            ros::Time msg_stamp_;
+            // ros::Time msg_stamp_;
             cv::Mat detection_image_;
             cv::dnn::Net net_;
-            camera_apps_msgs::BoundingBox bbox_;
+            camera_apps_msgs::BoundingBoxes bboxes_;
+            // camera_apps_msgs::BoundingBox bbox_;
 
             image_transport::Subscriber image_sub_;
             image_transport::Publisher image_pub_;
-            ros::Publisher bbox_pub_;
+            ros::Publisher bboxes_pub_;
+            // ros::Publisher bbox_pub_;
     };
 }
 #endif
