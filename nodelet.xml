@@ -6,7 +6,6 @@
         ObjectDetectorNodelet.
     </description>
   </class>
-
 </library>
 <library path="lib/libobject_state_estimator_nodelet">
     <class name="camera_apps/ObjectStateEstimatorNodelet"
@@ -16,5 +15,13 @@
         ObjectStateEstimatorNodelet.
     </description>
   </class>
-
+</library>
+<library path="lib/libmotion_predictor_nodelet">
+    <class name="camera_apps/MotionPredictorNodelet"
+      type="camera_apps::MotionPredictorNodelet"
+     base_class_type="nodelet::Nodelet">
+    <description>
+        MotionPredictorNodelet.
+    </description>
+  </class>
 </library>

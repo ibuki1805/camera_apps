@@ -35,17 +35,14 @@ namespace camera_apps
         private:
             void sync_callback(const camera_apps_msgs::BoundingBoxesConstPtr &bboxes_msg,
                     const sensor_msgs::PointCloud2ConstPtr &pc_msg);
-            // void sync_callback(const camera_apps_msgs::BoundingBoxConstPtr &bbox_msg,
-            //         const sensor_msgs::PointCloud2ConstPtr &pc_msg);
 
             void adjust_bbox(camera_apps_msgs::BoundingBox& bbox);
-            void create_object_pc(camera_apps_msgs::BoundingBox bbox);
-            // void create_object_pc();
+            void create_object_pc(pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pc, camera_apps_msgs::BoundingBox bbox);
             void downsampling(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
             void downsampling_pcl(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
             void remove_outlier(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);           
             void coloring_pc(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in, int red, int green, int blue);
-            void clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
+            bool clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
             geometry_msgs::PointStamped caluculate_centroid(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
 
 
@@ -58,27 +55,24 @@ namespace camera_apps
             double cluster_tolerance_;
             int min_cluster_size_;
             int max_cluster_size_;
+            bool publish_object_pc_flag_;
 
             camera_apps_msgs::BoundingBoxes bboxes_;
-            // camera_apps_msgs::BoundingBox bbox_;
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_pc_ {new pcl::PointCloud<pcl::PointXYZRGB>};
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pc_ {new pcl::PointCloud<pcl::PointXYZRGB>};
-            // sensor_msgs::PointCloud2 object_pc_msg_;
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pcs_ {new pcl::PointCloud<pcl::PointXYZRGB>};
+            pcl::PointCloud<pcl::PointXYZ>::Ptr centroids_ {new pcl::PointCloud<pcl::PointXYZ>};
             camera_apps_msgs::ObjectStates object_states_;
 
             typedef message_filters::sync_policies::ApproximateTime<camera_apps_msgs::BoundingBoxes,
                     sensor_msgs::PointCloud2> MySyncPolicy;
-            // typedef message_filters::sync_policies::ApproximateTime<camera_apps_msgs::BoundingBox,
-            //         sensor_msgs::PointCloud2> MySyncPolicy;
             
             message_filters::Subscriber<camera_apps_msgs::BoundingBoxes> *bboxes_sub_;
-            // message_filters::Subscriber<camera_apps_msgs::BoundingBox> *bbox_sub_;
             message_filters::Subscriber<sensor_msgs::PointCloud2> *pc_sub_;
             message_filters::Synchronizer<MySyncPolicy> *sync_;
 
             ros::Publisher object_states_pub_;
             ros::Publisher object_pc_pub_;
-            ros::Publisher centroid_pub_;
+            ros::Publisher centroids_pub_;
             
             tf2_ros::Buffer tf_buffer_;
             tf2_ros::TransformListener* tf2_listener_;

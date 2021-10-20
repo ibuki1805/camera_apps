@@ -1,0 +1,4 @@
+error_threshold: 0.5
+time_threshold: 2.0
+past_path_threshold: 50
+person_num_limit: 10

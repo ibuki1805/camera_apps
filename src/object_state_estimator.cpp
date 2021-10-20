@@ -13,17 +13,17 @@ namespace camera_apps
         pnh.param("cluster_tolerance", cluster_tolerance_, 0.02);
         pnh.param("min_cluster_size", min_cluster_size_, 1000);
         pnh.param("max_cluster_size", max_cluster_size_, 20000);
+        pnh.param("publish_object_pc_flag", publish_object_pc_flag_, false);
 
         object_pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/object_state/object_pc", 1);
+        centroids_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/object_state/centroids", 1);
 
         bboxes_sub_  = new message_filters::Subscriber<camera_apps_msgs::BoundingBoxes> (nh, "/bounding_boxes", 5);
-        // bbox_sub_  = new message_filters::Subscriber<camera_apps_msgs::BoundingBox> (nh, "/bounding_box", 5);
         pc_sub_ = new message_filters::Subscriber<sensor_msgs::PointCloud2>(nh, "/camera/depth_registered/points", 5);
         sync_ = new message_filters::Synchronizer<MySyncPolicy>(MySyncPolicy(10), *bboxes_sub_, *pc_sub_);
         sync_->registerCallback(&ObjectStateEstimator::sync_callback, this);
 
         object_states_pub_ = nh.advertise<camera_apps_msgs::ObjectStates>("/object_states", 1);
-        centroid_pub_ = nh.advertise<geometry_msgs::PointStamped>("/object_state/centroid", 1);
 
         tf2_listener_ = new tf2_ros::TransformListener(tf_buffer_);
     }
@@ -55,63 +55,41 @@ namespace camera_apps
         }
 
         bboxes_ = *bboxes_msg;
+
         pcl_conversions::fromPCL(input_pc_->header, object_states_.header);
         object_states_.object_states.clear();
+        object_pcs_->points.clear();
+        centroids_->points.clear();
         for(auto bbox: bboxes_msg->bounding_boxes){
             camera_apps_msgs::ObjectState object_state;
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pc {new pcl::PointCloud<pcl::PointXYZRGB>};
 
             object_state.label = bbox.label;
             object_state.confidence = bbox.confidence;
 
             adjust_bbox(bbox);
-            create_object_pc(bbox);
+            create_object_pc(object_pc, bbox);
+            if(!clustering(object_pc)){
+                // std::cout << "cannot clustering!!" << std::endl;
+                continue;
+            }
+            for(const auto& point: object_pc->points) object_pcs_->points.push_back(point);
+            object_pcs_->header = object_pc->header;
 
-            geometry_msgs::PointStamped centroid = caluculate_centroid(object_pc_);
+            geometry_msgs::PointStamped centroid = caluculate_centroid(object_pc);
             object_state.centroid = centroid;
+            // std::cout << "object_pc_size: " << object_pc_->points.size();
+            // std::cout << " centroid_x: " << centroid.point.x;
+            // std::cout << " centroid_y: " << centroid.point.y << std::endl;
 
-            pcl::toROSMsg(*object_pc_, object_state.object_pc);
+            if(publish_object_pc_flag_) pcl::toROSMsg(*object_pc, object_state.object_pc);
 
             object_states_.object_states.push_back(object_state);
-            object_pc_pub_.publish(object_pc_);
-            centroid_pub_.publish(centroid);
         }
+        object_pc_pub_.publish(object_pcs_);
+        centroids_pub_.publish(centroids_);
         object_states_pub_.publish(object_states_);
     }
-    // void ObjectStateEstimator::sync_callback(const camera_apps_msgs::BoundingBoxConstPtr &bbox_msg,
-    //         const sensor_msgs::PointCloud2ConstPtr &pc_msg)
-    //
-    // {
-    //     try{
-    //         geometry_msgs::TransformStamped transform_stamped;
-    //         transform_stamped = tf_buffer_.lookupTransform("camera_fixed_frame", "camera_color_optical_frame", ros::Time(0));
-    //         Eigen::Matrix4f mat = tf2::transformToEigen(transform_stamped.transform).matrix().cast<float>();
-    //
-    //         sensor_msgs::PointCloud2 pc_msg_temp;
-    //         pcl_ros::transformPointCloud(mat, *pc_msg, pc_msg_temp);
-    //         pcl::fromROSMsg(pc_msg_temp, *input_pc_);
-    //         input_pc_->header.frame_id = "camera_fixed_frame";
-    //     }
-    //     catch(tf2::TransformException &ex){
-    //         ROS_WARN("%s", ex.what());
-    //         return;
-    //     }
-    //
-    //     bbox_ = *bbox_msg;
-    //     if(bbox_.xmin < 0) bbox_.xmin = 0;
-    //     if(bbox_.ymin < 0) bbox_.ymin = 0;
-    //     if(bbox_.xmax >= img_width_) bbox_.xmax = img_width_ - 1;
-    //     if(bbox_.ymax >= img_height_) bbox_.ymax = img_height_ - 1;
-    //
-    //
-    //     create_object_pc();
-    //     // object_state_.label = bbox_.label;
-    //     // object_state_.confidence = bbox_.confidence;
-    //
-    //     object_pc_pub_.publish(object_pc_);
-    //     centroid_pub_.publish(centroid_msg_);
-    //     // object_state_pub_.publish(object_state_);
-    //
-    // }
 
     void ObjectStateEstimator::adjust_bbox(camera_apps_msgs::BoundingBox& bbox)
     {
@@ -121,74 +99,31 @@ namespace camera_apps
         if(bbox.ymax >= img_height_) bbox.ymax = img_height_ - 1;
     }
 
-    void ObjectStateEstimator::create_object_pc(camera_apps_msgs::BoundingBox bbox)
+    void ObjectStateEstimator::create_object_pc(pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pc, camera_apps_msgs::BoundingBox bbox)
     {
 
-        object_pc_->header = input_pc_->header;
-        object_pc_->is_dense = 0;
+        object_pc->header = input_pc_->header;
+        object_pc->is_dense = 0;
 
-        object_pc_->points.clear();
+
+        object_pc->points.clear();
         for(int y=bbox.ymin; y<bbox.ymax; y++){
             for(int x=bbox.xmin; x < bbox.xmax; x++)
             {
-                object_pc_->points.push_back(input_pc_->points[y * input_pc_->width + x]);
+                object_pc->points.push_back(input_pc_->points[y * input_pc_->width + x]);
             }
         }
 
         std::vector<int> indices;
-        pcl::removeNaNFromPointCloud(*object_pc_, *object_pc_, indices);
+        pcl::removeNaNFromPointCloud(*object_pc, *object_pc, indices);
         
-        downsampling(object_pc_);
-        clustering(object_pc_);
-
-        // pcl::toROSMsg(*object_pc_, object_pc_msg_); 
-        // object_state_.object_pc = object_pc_msg_;
-        // object_state_.header = object_pc_msg_.header;
-        // object_state_.centroid.header = object_pc_msg_.header;
+        downsampling(object_pc);
     }
-    // void ObjectStateEstimator::create_object_pc()
-    // {
-    //     object_pc_->header = input_pc_->header;
-    //     object_pc_->is_dense = 0;
-    //
-    //     object_pc_->width = bbox_.xmax - bbox_.xmin + 1;
-    //     object_pc_->height = bbox_.ymax - bbox_.ymin + 1;
-    //     object_pc_->points.clear();
-    //     for(int y=bbox_.ymin; y<bbox_.ymax; y++){
-    //         for(int x=bbox_.xmin; x < bbox_.xmax; x++)
-    //         {
-    //             object_pc_->points.push_back(input_pc_->points[y * input_pc_->width + x]);
-    //         }
-    //     }
-    //
-    //     std::vector<int> indices;
-    //     pcl::removeNaNFromPointCloud(*object_pc_, *object_pc_, indices);
-    //     
-    //     downsampling(object_pc_);
-    //     // std::cout << "before: " << object_pc_->points.size();
-    //     // remove_outlier();
-    //     clustering(object_pc_);
-    //     // std::cout << " after: " << object_pc_->points.size() << std::endl;
-    //     pcl::computeCentroid(*object_pc_, centroid_pcl_);
-    //     // std::cout << "x: " << centroid_pcl_.x << " y: " << centroid_pcl_.y << " z: " << centroid_pcl_.z << std::endl;
-    //     
-    //     pcl_conversions::fromPCL(object_pc_->header, centroid_msg_.header);
-    //     centroid_msg_.point.x = centroid_pcl_.x;
-    //     centroid_msg_.point.y = centroid_pcl_.y;
-    //     centroid_msg_.point.z = centroid_pcl_.z;
-    //     // object_state_.centroid.point.x = x_sum / object_pc_->points.size();
-    //     // object_state_.centroid.point.y = y_sum / object_pc_->points.size();
-    //     // object_state_.centroid.point.z = z_sum / object_pc_->points.size();
-    //
-    //     // pcl::toROSMsg(*object_pc_, object_pc_msg_); 
-    //     // object_state_.object_pc = object_pc_msg_;
-    //     // object_state_.header = object_pc_msg_.header;
-    //     // object_state_.centroid.header = object_pc_msg_.header;
-    // }
 
     void ObjectStateEstimator::downsampling(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
     {
         int step = pc_in->points.size() / points_limit_;
+        if(step == 0) step = 1;
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
 
         tmp_pc->header = pc_in->header;
@@ -232,7 +167,7 @@ namespace camera_apps
         }
     }
 
-    void ObjectStateEstimator::clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
+    bool ObjectStateEstimator::clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
     {
         pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
         tree->setInputCloud (pc_in);
@@ -245,9 +180,9 @@ namespace camera_apps
         ec.setSearchMethod (tree);//検索に使用する手法を指定
         ec.setInputCloud (pc_in);//点群を入力
         ec.extract (cluster_indices);//クラスター情報を出力
+        
+        if(cluster_indices.size() == 0) return false;
 
-
-        // std::cout << "cluster num: " << cluster_indices.size() << std::endl;
         std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin ();
         
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -261,6 +196,8 @@ namespace camera_apps
         cloud_cluster->is_dense = true;
 
         *pc_in = *cloud_cluster;
+
+        return true;
     }
 
     geometry_msgs::PointStamped ObjectStateEstimator::caluculate_centroid(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
@@ -269,6 +206,8 @@ namespace camera_apps
         pcl::PointXYZ centroid_pcl;
 
         pcl::computeCentroid(*pc_in, centroid_pcl);
+        centroids_->points.push_back(centroid_pcl);
+        centroids_->header = pc_in->header;
         
         pcl_conversions::fromPCL(pc_in->header, centroid_msg.header);
         centroid_msg.point.x = centroid_pcl.x;

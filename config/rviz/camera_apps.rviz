@@ -6,6 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /LaserScan1
+        - /PointCloud22
+        - /Path1
       Splitter Ratio: 0.5
     Tree Height: 355
   - Class: rviz/Selection
@@ -53,17 +56,6 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 1
-      Class: rviz/PointStamped
-      Color: 204; 41; 204
-      Enabled: true
-      History Length: 1
-      Name: PointStamped
-      Queue Size: 10
-      Radius: 0.20000000298023224
-      Topic: /object_state/centroid
-      Unreliable: false
-      Value: true
-    - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
         Max Value: 10
@@ -96,9 +88,13 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        base_link:
+          Value: true
         camera_color_optical_frame:
           Value: true
         camera_fixed_frame:
+          Value: true
+        laser:
           Value: true
       Marker Alpha: 1
       Marker Scale: 1
@@ -107,8 +103,11 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        camera_fixed_frame:
-          camera_color_optical_frame:
+        base_link:
+          camera_fixed_frame:
+            camera_color_optical_frame:
+              {}
+          laser:
             {}
       Update Interval: 0
       Value: true
@@ -122,6 +121,86 @@ Visualization Manager:
       Normalize Range: true
       Queue Size: 2
       Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/LaserScan
+      Color: 52; 101; 164
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: LaserScan
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.03999999910593033
+      Style: Flat Squares
+      Topic: /scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 239; 41; 41
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 15
+      Size (m): 0.10000000149011612
+      Style: Points
+      Topic: /object_state/centroids
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Buffer Length: 10
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Queue Size: 10
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /past_trajectory
       Unreliable: false
       Value: true
   Enabled: true
@@ -152,7 +231,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 8.162245750427246
+      Distance: 14.306943893432617
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -160,17 +239,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.7567806243896484
-        Y: -0.12150231003761292
-        Z: -0.11024335771799088
+        X: 2.943789005279541
+        Y: -0.19919204711914062
+        Z: -0.9773173928260803
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.19539812207221985
+      Pitch: 1.0753980875015259
       Target Frame: <Fixed Frame>
-      Yaw: 2.7103984355926514
+      Yaw: 3.175398349761963
     Saved: ~
 Window Geometry:
   Displays:
@@ -191,4 +270,4 @@ Window Geometry:
     collapsed: false
   Width: 1267
   X: 288
-  Y: 1237
+  Y: 1107

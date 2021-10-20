@@ -56,3 +56,18 @@ target_link_libraries(object_state_estimator_nodelet
     ${PCL_LIBRARIES}
 )
 
+add_executable(motion_predictor_node src/motion_predictor_node.cpp src/motion_predictor.cpp)
+add_dependencies(motion_predictor_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(
+    motion_predictor_node
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    )
+
+add_library(motion_predictor_nodelet src/motion_predictor.cpp src/motion_predictor_nodelet.cpp)
+
+target_link_libraries(motion_predictor_nodelet
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+)
+

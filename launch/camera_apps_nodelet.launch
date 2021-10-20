@@ -1,33 +1,33 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="manager_name" default="nodelet_manager" />
-  <!-- <arg name="manager_threads" default="4" /> -->
 
-  <node pkg="nodelet" type="nodelet" name="$(arg manager_name)" args="manager" output="screen">
-    <!-- <param name="num_worker_threads" value="$(arg manager_threads)" /> -->
-  </node>
+  <node pkg="nodelet" type="nodelet" name="$(arg manager_name)" args="manager" output="screen"/>
 
   <node pkg="nodelet" type="nodelet" name="object_detector_nodelet"
       args="load camera_apps/ObjectDetectorNodelet $(arg manager_name)" >
-    <!-- <remap from="chatter" to="chatter_alt" /> -->
     <param name="model_path" value="$(find camera_apps)/model" />
+    <rosparam file="$(find camera_apps)/config/param/object_detector.yaml" command="load"/>
   </node>    
-  <!-- <node pkg="camera_apps" type="object_detector_node" name="object_detector_node" -->
-  <!--     output="screen" > -->
-  <!--   <param name="model_path" value="$(find camera_apps)/model" /> -->
-  <!-- </node>     -->
 
   <node pkg="nodelet" type="nodelet" name="object_state_estimator_nodelet"
       args="load camera_apps/ObjectStateEstimatorNodelet $(arg manager_name)" >
-      <param name="mean_k" type="int" value="10"/>
-      <param name="std_dev_th" type="double" value="0.05"/>
-      <param name="leafsize" type="double" value="0.05"/>
-      <param name="points_limit" type="int" value="10000"/>
+    <rosparam file="$(find camera_apps)/config/param/object_state_estimator.yaml" command="load"/>
+  </node>    
+
+  <node pkg="nodelet" type="nodelet" name="moiton_predictor_nodelet"
+      args="load camera_apps/MotionPredictorNodelet $(arg manager_name)" >
+    <rosparam file="$(find camera_apps)/config/param/motion_predictor.yaml" command="load"/>
   </node>    
 
   <!-- <param name="use_sim_time" value="true" type="bool"/> -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="tf_fixed_to_origin"
       args="0 0 0 4.7124 0 4.7124 camera_fixed_frame camera_color_optical_frame">
+  </node>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_base_to_fixed"
+      args="0 0 0.7 0 0 0 base_link camera_fixed_frame"/>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_base_to_scan"
+      args="0 0 0 0 0 0 base_link laser">
   </node>
 
   <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps.rviz" output="screen"/>
