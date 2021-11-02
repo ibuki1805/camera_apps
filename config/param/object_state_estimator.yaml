@@ -3,8 +3,10 @@ img_height: 480
 mean_k: 10
 std_dev_th: 0.05
 leafsize: 0.01
-points_limit: 5000
-cluster_tolerance: 0.025
+# points_limit: 5000
+points_limit: 10000
+# cluster_tolerance: 0.025
+cluster_tolerance: 0.02
 min_cluster_size: 100
 max_cluster_size: 20000
 publish_object_pc_flag: false

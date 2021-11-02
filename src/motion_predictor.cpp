@@ -11,6 +11,11 @@ namespace camera_apps
         object_states_sub_ = nh.subscribe("/object_states", 5, &MotionPredictor::object_states_callback, this);
         past_trajectory_pub_ = nh.advertise<nav_msgs::Path>("/past_trajectory", 20);
 
+        past_trajectory_pub1_ = nh.advertise<nav_msgs::Path>("/past_trajectory1", 10);
+        past_trajectory_pub2_ = nh.advertise<nav_msgs::Path>("/past_trajectory2", 10);
+        past_trajectory_pub3_ = nh.advertise<nav_msgs::Path>("/past_trajectory3", 10);
+        past_trajectory_pub4_ = nh.advertise<nav_msgs::Path>("/past_trajectory4", 10);
+        past_trajectory_pub5_ = nh.advertise<nav_msgs::Path>("/past_trajectory5", 10);
         
         tf2_listener_ = new tf2_ros::TransformListener(tf_buffer_);
 
@@ -54,7 +59,8 @@ namespace camera_apps
             }
         }
         lost_judge();
-        visualize_trajectory();
+        // visualize_trajectory();
+        visualize_trajectory2();
         // std::cout << "person num: " << valid_id_list_.size() << std::endl;
     }
 
@@ -74,7 +80,8 @@ namespace camera_apps
         pose.header = object_state.centroid.header;
         pose.pose.position.x = object_state.centroid.point.x;
         pose.pose.position.y = object_state.centroid.point.y;
-        pose.pose.position.z = object_state.centroid.point.z;
+        // pose.pose.position.z = object_state.centroid.point.z;
+        pose.pose.position.z = 0;
         trajectory.poses.push_back(pose);
         new_person.trajectory = trajectory;
 
@@ -93,7 +100,8 @@ namespace camera_apps
         pose.header = object_state.centroid.header;
         pose.pose.position.x = object_state.centroid.point.x;
         pose.pose.position.y = object_state.centroid.point.y;
-        pose.pose.position.z = object_state.centroid.point.z;
+        // pose.pose.position.z = object_state.centroid.point.z;
+        pose.pose.position.z = 0;
         person_list_[index].trajectory.poses.push_back(pose);
 
         if(person_list_[index].trajectory.poses.size() > past_path_threshold_){
@@ -139,5 +147,33 @@ namespace camera_apps
         for(const auto& person_info: person_list_){
             past_trajectory_pub_.publish(person_info.trajectory);
         }
+    }
+    void MotionPredictor::visualize_trajectory2()
+    {
+        // std::cout << "person_list_size: " << person_list_.size() << std::endl;
+        // for(const auto& person_info: person_list_){
+        //     past_trajectory_pub_.publish(person_info.trajectory);
+        // }
+        int limit = 5;
+        if(limit > person_list_.size()) limit = person_list_.size();
+        // for(int i=0; i<limit; i++){
+        //     
+        // }
+        int i=0;
+        if(i>limit-1) return;
+        past_trajectory_pub1_.publish(person_list_[0].trajectory);
+        i++;
+        if(i>limit-1) return;
+        past_trajectory_pub2_.publish(person_list_[1].trajectory);
+        i++;
+        if(i>limit-1) return;
+        past_trajectory_pub3_.publish(person_list_[2].trajectory);
+        i++;
+        if(i>limit-1) return;
+        past_trajectory_pub4_.publish(person_list_[3].trajectory);
+        i++;
+        if(i>limit-1) return;
+        past_trajectory_pub5_.publish(person_list_[4].trajectory);
+
     }
 }

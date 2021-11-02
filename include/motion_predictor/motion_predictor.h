@@ -31,6 +31,7 @@ namespace camera_apps
             void register_person(camera_apps_msgs::ObjectState& object_state);
             void update_person(int id, camera_apps_msgs::ObjectState& object_state);
             void visualize_trajectory();
+            void visualize_trajectory2();
             void delete_person(int id);
             void lost_judge();
             int id_to_index(int id);
@@ -48,6 +49,12 @@ namespace camera_apps
 
             ros::Subscriber object_states_sub_;
             ros::Publisher past_trajectory_pub_;
+
+            ros::Publisher past_trajectory_pub1_;
+            ros::Publisher past_trajectory_pub2_;
+            ros::Publisher past_trajectory_pub3_;
+            ros::Publisher past_trajectory_pub4_;
+            ros::Publisher past_trajectory_pub5_;
 
             tf2_ros::Buffer tf_buffer_;
             tf2_ros::TransformListener* tf2_listener_;
