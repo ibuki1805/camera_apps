@@ -11,7 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
     nodelet
     camera_apps_msgs
     pcl_ros
+    eigen_conversions
 )
+find_package(Eigen3 REQUIRED)
 
 catkin_package(
  INCLUDE_DIRS include
@@ -24,6 +26,7 @@ include_directories(
     include
     ${catkin_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
+    ${Eigen3_INCLUDE_DIRS}
 )
 
 add_executable(object_detector_node src/object_detector_node.cpp src/object_detector.cpp)
@@ -62,6 +65,7 @@ target_link_libraries(
     motion_predictor_node
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
+    ${Eigen3_LIBRARIES}
     )
 
 add_library(motion_predictor_nodelet src/motion_predictor.cpp src/motion_predictor_nodelet.cpp)
@@ -69,5 +73,6 @@ add_library(motion_predictor_nodelet src/motion_predictor.cpp src/motion_predict
 target_link_libraries(motion_predictor_nodelet
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
+    ${Eigen3_LIBRARIES}
 )
 
