@@ -60,6 +60,8 @@ namespace camera_apps
             Eigen::VectorXd update_X(Eigen::VectorXd X_hat, Eigen::MatrixXd K, double Z_x, double Z_y);
             Eigen::MatrixXd update_P(Eigen::MatrixXd K, Eigen::MatrixXd P_hat);
             Eigen::MatrixXd update_K(Eigen::MatrixXd P_hat, double Z_x, double Z_y);
+            double calculate_euclidean_distance(PersonInfo registered_info, geometry_msgs::PointStamped input_centroid);
+            double calculate_mahalanobis_distance(PersonInfo registered_info, geometry_msgs::PointStamped input_centroid);
 
             double error_threshold_;
             double time_threshold_;
@@ -68,6 +70,7 @@ namespace camera_apps
             bool colorful_trajectory_flag_;
             double observation_noise_ratio_;
             double trajectory_z_;
+            int data_num_th_visualize_;
 
             double sigma_initial_P_theta_;
             double sigma_initial_P_velocity_;

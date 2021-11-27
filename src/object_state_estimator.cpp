@@ -14,6 +14,9 @@ namespace camera_apps
         pnh.param("min_cluster_size", min_cluster_size_, 1000);
         pnh.param("max_cluster_size", max_cluster_size_, 20000);
         pnh.param("publish_object_pc_flag", publish_object_pc_flag_, false);
+        pnh.param("ransac_dist_th", ransac_dist_th_, 0.01);
+        pnh.param("through_th_z_min", through_th_z_min_, -70.0);
+        pnh.param("through_th_z_max", through_th_z_max_, 2.0);
 
         object_pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/object_state/object_pc", 1);
         centroids_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/object_state/centroids", 1);
@@ -69,10 +72,20 @@ namespace camera_apps
 
             adjust_bbox(bbox);
             create_object_pc(object_pc, bbox);
+            // std::cout << "before: " << object_pc->points.size();
+            through_filtering(object_pc);
+            // std::cout << " after: " << object_pc->points.size() << std::endl;
+            downsampling(object_pc);
+            // std::cout << "before: " << object_pc->points.size();
+            // std::cout << " after: " << object_pc->points.size() << std::endl;
+            // std::cout << "before: " << object_pc->points.size();
+            // surface_segmentation(object_pc);
+            // std::cout << " after: " << object_pc->points.size() << std::endl;
             if(!clustering(object_pc)){
                 // std::cout << "cannot clustering!!" << std::endl;
                 continue;
             }
+            // remove_outlier(object_pc);
             for(const auto& point: object_pc->points) object_pcs_->points.push_back(point);
             object_pcs_->header = object_pc->header;
 
@@ -117,7 +130,7 @@ namespace camera_apps
         std::vector<int> indices;
         pcl::removeNaNFromPointCloud(*object_pc, *object_pc, indices);
         
-        downsampling(object_pc);
+        // downsampling(object_pc);
     }
 
     void ObjectStateEstimator::downsampling(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
@@ -217,4 +230,37 @@ namespace camera_apps
         return centroid_msg;
     }
 
+    void ObjectStateEstimator::surface_segmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
+    {
+        pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+        pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+
+        pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+
+        seg.setOptimizeCoefficients (true);
+        // Mandatory
+        seg.setInputCloud(pc_in);
+        seg.setModelType (pcl::SACMODEL_PLANE);//検出するモデルのタイプを指定
+        seg.setMethodType (pcl::SAC_RANSAC);//検出に使用する方法を指定
+        seg.setDistanceThreshold (ransac_dist_th_);//RANSACの最小二乗法の許容誤差範囲
+        seg.setMaxIterations(50);
+        seg.setProbability(0.8);
+        seg.segment(*inliers, *coefficients);
+
+        pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+        extract.setInputCloud(pc_in);
+        extract.setIndices(inliers);
+        extract.setNegative(true);//trueの場合出力は検出された平面以外のデータ falseの場合は平面のデータ
+        extract.filter(*pc_in);
+    }
+
+    void ObjectStateEstimator::through_filtering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
+    {
+        pcl::PassThrough<pcl::PointXYZRGB> pass;
+        pass.setInputCloud(pc_in);
+        pass.setFilterFieldName("z");
+        pass.setFilterLimits(through_th_z_min_, through_th_z_max_);
+        pass.filter(*pc_in);
+        // std::cout << " 1 " << std::endl;
+    }
 }

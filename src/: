@@ -54,11 +54,12 @@ namespace camera_apps
             double best_error = 1000000000;
             for(const auto& id: valid_id_list_){
                 int index = id_to_index(id);
-                // std::cout << "maha: " << calculate_mahalanobis_distance(person_list_[index], object_state.centroid) << std::endl;;
-                // std::cout << "euc: " << calculate_euclidean_distance(person_list_[index], object_state.centroid) << std::endl << std::endl;
-                double mahalanobis_error = calculate_mahalanobis_distance(person_list_[index], object_state.centroid);
-                double error = calculate_euclidean_distance(person_list_[index], object_state.centroid);
-                if(error > mahalanobis_error) error = mahalanobis_error;
+                double registered_x = person_list_[index].centroid.point.x;
+                double registered_y = person_list_[index].centroid.point.y;
+                double input_x = object_state.centroid.point.x;
+                double input_y = object_state.centroid.point.y;
+
+                double error = std::sqrt(std::pow(input_x - registered_x, 2) + std::pow(input_y - registered_y, 2));
                 if(error < best_error){
                     best_id = id;
                     best_error = error;
@@ -410,16 +411,13 @@ namespace camera_apps
         Eigen::MatrixXd X = registered_info.X;
         Eigen::MatrixXd P = registered_info.P;
         Eigen::MatrixXd X_hat = calculate_X_hat(X, dt);
-        Eigen::MatrixXd P_hat = calculate_P_hat(X, P, dt);
+        Eigen::MatrixXd P_hat = calculate_X_hat(X, P, dt);
 
         Eigen::Vector2d Z_hat(X_hat(0), X_hat(1));
         Eigen::Vector2d Z(input_centroid.point.x, input_centroid.point.y);
         Eigen::MatrixXd sigma = P_hat.block(0, 0, 2, 2);
-        // std::cout << "P_hat: " << std::endl << P_hat << std::endl;
-        // std::cout << "sigma: " << std::endl << sigma << std::endl;
 
         double dist = std::sqrt((Z - Z_hat).transpose() * sigma.inverse() * (Z - Z_hat));
 
-        return dist;
     }
 }

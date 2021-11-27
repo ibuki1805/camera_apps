@@ -13,6 +13,9 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/filters/passthrough.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PointStamped.h>
@@ -44,6 +47,8 @@ namespace camera_apps
             void coloring_pc(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in, int red, int green, int blue);
             bool clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
             geometry_msgs::PointStamped caluculate_centroid(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
+            void surface_segmentation(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
+            void through_filtering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
 
 
             int img_width_;
@@ -56,6 +61,9 @@ namespace camera_apps
             int min_cluster_size_;
             int max_cluster_size_;
             bool publish_object_pc_flag_;
+            double ransac_dist_th_;
+            double through_th_z_min_;
+            double through_th_z_max_;
 
             camera_apps_msgs::BoundingBoxes bboxes_;
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_pc_ {new pcl::PointCloud<pcl::PointXYZRGB>};
