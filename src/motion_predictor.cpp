@@ -20,10 +20,17 @@ namespace camera_apps
         pnh.param("sigma_Q_omega", sigma_Q_omega_, M_PI);
         pnh.param("trajectory_z", trajectory_z_, 0.0);
         pnh.param("data_num_th_visualize", data_num_th_visualize_, 2);
+        pnh.param("data_num_th_mahalanovis", data_num_th_mahalanovis_, 2);
+        pnh.param("predict_time", predict_time_, 2.0);
+        pnh.param("predict_dt", predict_dt_, 0.1);
+        pnh.param("calc_future_trajectory_flag", calc_future_trajectory_flag_, false);
+        pnh.param("visualize_future_trajectory_flag", visualize_future_trajectory_flag_, false);
+        pnh.param("visualize_past_trajectory_flag", visualize_past_trajectory_flag_, true);
 
         object_states_sub_ = nh.subscribe("/object_states", 5, &MotionPredictor::object_states_callback, this);
         past_trajectory_pub_ = nh.advertise<nav_msgs::Path>("/past_trajectory", 20);
         filtered_past_trajectory_pub_ = nh.advertise<nav_msgs::Path>("/filtered_past_trajectory", 20);
+        future_trajectory_pub_ = nh.advertise<nav_msgs::Path>("/future_trajectory", 20);
         filtered_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/filtered_pose", 1);
         filtered_pose_array_pub_ = nh.advertise<geometry_msgs::PoseArray>("/filtered_pose_array", 1);
 
@@ -59,6 +66,9 @@ namespace camera_apps
                 double mahalanobis_error = calculate_mahalanobis_distance(person_list_[index], object_state.centroid);
                 double error = calculate_euclidean_distance(person_list_[index], object_state.centroid);
                 if(error > mahalanobis_error) error = mahalanobis_error;
+                // if(person_list_[index].trajectory.poses.size() >= data_num_th_mahalanovis_){
+                //     error = mahalanobis_error;
+                // }
                 if(error < best_error){
                     best_id = id;
                     best_error = error;
@@ -77,12 +87,13 @@ namespace camera_apps
         }
         lost_judge();
         if(!colorful_trajectory_flag_){
-            visualize_trajectory();
+            if(visualize_past_trajectory_flag_) visualize_trajectory();
         }
         else{
             visualize_trajectory2();
         }
         visualize_filtered_trajectory();
+        if(visualize_future_trajectory_flag_) visualize_future_trajectory();
         visualize_filtered_pose();
         // std::cout << "person num: " << valid_id_list_.size() << std::endl;
     }
@@ -96,6 +107,7 @@ namespace camera_apps
         new_person.id = new_id;
         new_person.centroid = object_state.centroid;
         new_person.filtered_pose.pose.position = object_state.centroid.point;
+        new_person.filtered_pose.header = object_state.centroid.header;
         new_person.latest_time = object_state.centroid.header.stamp;
 
         nav_msgs::Path trajectory;
@@ -158,6 +170,7 @@ namespace camera_apps
         filtered_pose.header = object_state.centroid.header;
         person_list_[index].filtered_pose = filtered_pose;
         person_list_[index].filtered_trajectory.poses.push_back(filtered_pose);
+        if(calc_future_trajectory_flag_)calculate_future_trajectory(person_list_[index]);
 
         if(person_list_[index].trajectory.poses.size() > past_path_threshold_){
             person_list_[index].trajectory.poses.erase(person_list_[index].trajectory.poses.begin());
@@ -175,17 +188,17 @@ namespace camera_apps
         trajectory.poses.push_back(pose);
     }
 
-    void MotionPredictor::update_trajectory(nav_msgs::Path& trajectory, geometry_msgs::PoseStamped filtered_pose)
-    {
-        // geometry_msgs::PoseStamped pose;
-        // pose.header = filtered_pose.header;
-        // pose.pose.position.x = filtered_pose.pose.position.x;
-        // pose.pose.position.y = filtered_pose.pose.position.y;
-        // pose.pose.position.z = trajectory_z_;
-        // pose.pose.orientation = filtered_pose.pose.orientation;
-        trajectory.poses.push_back(filtered_pose);
-    }
-    
+    // void MotionPredictor::update_trajectory(nav_msgs::Path& trajectory, geometry_msgs::PoseStamped filtered_pose)
+    // {
+    //     // geometry_msgs::PoseStamped pose;
+    //     // pose.header = filtered_pose.header;
+    //     // pose.pose.position.x = filtered_pose.pose.position.x;
+    //     // pose.pose.position.y = filtered_pose.pose.position.y;
+    //     // pose.pose.position.z = trajectory_z_;
+    //     // pose.pose.orientation = filtered_pose.pose.orientation;
+    //     trajectory.poses.push_back(filtered_pose);
+    // }
+    //
     void MotionPredictor::delete_person(int id)
     {
         int index = id_to_index(id);
@@ -264,6 +277,16 @@ namespace camera_apps
         }
     }
 
+    void MotionPredictor::visualize_future_trajectory()
+    {
+        for(const auto& person_info: person_list_){
+            if(person_info.future_trajectory.poses.size() >= 1){
+                future_trajectory_pub_.publish(person_info.future_trajectory);
+            }
+        }
+
+    }
+
     void MotionPredictor::visualize_filtered_pose()
     {
         geometry_msgs::PoseArray filtered_pose_array;
@@ -309,14 +332,14 @@ namespace camera_apps
 
     void MotionPredictor::set_invariable_matrix()
     {
-        Eigen::MatrixXd Q(5,5);
-        Q.setZero();
-        Q(0,0) = sigma_Q_x_;
-        Q(1,1) = sigma_Q_y_;
-        Q(2,2) = sigma_Q_theta_;
-        Q(3,3) = sigma_Q_velocity_;
-        Q(4,4) = sigma_Q_omega_;
-        Q_ = Q;
+        // Eigen::MatrixXd Q(5,5);
+        // Q.setZero();
+        // Q(0,0) = sigma_Q_x_;
+        // Q(1,1) = sigma_Q_y_;
+        // Q(2,2) = sigma_Q_theta_;
+        // Q(3,3) = sigma_Q_velocity_;
+        // Q(4,4) = sigma_Q_omega_;
+        // Q_ = Q;
 
         Eigen::MatrixXd H(2,5);
         H.setIdentity();
@@ -354,9 +377,17 @@ namespace camera_apps
 
     Eigen::MatrixXd MotionPredictor::calculate_P_hat(Eigen::VectorXd X, Eigen::MatrixXd P, double dt)
     {
+        Eigen::MatrixXd Q(5,5);
+        Q.setZero();
+        Q(0,0) = sigma_Q_x_ * dt;
+        Q(1,1) = sigma_Q_y_ * dt;
+        Q(2,2) = sigma_Q_theta_ * dt;
+        Q(3,3) = sigma_Q_velocity_ * dt;
+        Q(4,4) = sigma_Q_omega_ * dt;
+        Q *= Q;
         Eigen::MatrixXd P_hat;
         Eigen::MatrixXd F = calculate_F(X, dt);
-        P_hat = F * P * F.transpose() + Q_ * dt;
+        P_hat = F * P * F.transpose() + Q;
 
         return P_hat;
     }
@@ -421,5 +452,25 @@ namespace camera_apps
         double dist = std::sqrt((Z - Z_hat).transpose() * sigma.inverse() * (Z - Z_hat));
 
         return dist;
+    }
+
+    void MotionPredictor::calculate_future_trajectory(PersonInfo& person_info)
+    {
+        nav_msgs::Path future_trajectory;
+        future_trajectory.header.frame_id = person_info.trajectory.header.frame_id;
+
+        Eigen::MatrixXd X = person_info.X;
+        geometry_msgs::PoseStamped pose = create_pose_from_X(X);
+        pose.header = person_info.filtered_pose.header;
+        future_trajectory.poses.push_back(pose);
+
+        for(double t=predict_dt_; t<=predict_time_; t+=predict_dt_){
+            X = calculate_X_hat(X, predict_dt_);
+            pose = create_pose_from_X(X);
+            pose.header.frame_id = person_info.filtered_pose.header.frame_id;
+            pose.header.stamp = person_info.latest_time + ros::Duration(t);
+            future_trajectory.poses.push_back(pose);
+        }
+        person_info.future_trajectory = future_trajectory;
     }
 }

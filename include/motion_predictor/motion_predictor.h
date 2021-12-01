@@ -27,6 +27,7 @@ namespace camera_apps
         geometry_msgs::PoseStamped filtered_pose;
         nav_msgs::Path trajectory;
         nav_msgs::Path filtered_trajectory;
+        nav_msgs::Path future_trajectory;
         Eigen::VectorXd X;
         Eigen::MatrixXd P;
         Eigen::MatrixXd K;
@@ -42,10 +43,11 @@ namespace camera_apps
             void register_person(camera_apps_msgs::ObjectState& object_state);
             void update_person(int id, camera_apps_msgs::ObjectState& object_state);
             void update_trajectory(nav_msgs::Path& trajectory, geometry_msgs::PointStamped centroid);
-            void update_trajectory(nav_msgs::Path& trajectory, geometry_msgs::PoseStamped filtered_pose);
+            // void update_trajectory(nav_msgs::Path& trajectory, geometry_msgs::PoseStamped filtered_pose);
             void visualize_trajectory();
             void visualize_trajectory2();
             void visualize_filtered_trajectory();
+            void visualize_future_trajectory();
             void visualize_filtered_pose();
             void delete_person(int id);
             void lost_judge();
@@ -62,6 +64,7 @@ namespace camera_apps
             Eigen::MatrixXd update_K(Eigen::MatrixXd P_hat, double Z_x, double Z_y);
             double calculate_euclidean_distance(PersonInfo registered_info, geometry_msgs::PointStamped input_centroid);
             double calculate_mahalanobis_distance(PersonInfo registered_info, geometry_msgs::PointStamped input_centroid);
+            void calculate_future_trajectory(PersonInfo& person_info);
 
             double error_threshold_;
             double time_threshold_;
@@ -71,6 +74,12 @@ namespace camera_apps
             double observation_noise_ratio_;
             double trajectory_z_;
             int data_num_th_visualize_;
+            int data_num_th_mahalanovis_;
+            double predict_time_;
+            double predict_dt_;
+            bool calc_future_trajectory_flag_;
+            bool visualize_future_trajectory_flag_;
+            bool visualize_past_trajectory_flag_;
 
             double sigma_initial_P_theta_;
             double sigma_initial_P_velocity_;
@@ -94,6 +103,7 @@ namespace camera_apps
             ros::Subscriber object_states_sub_;
             ros::Publisher past_trajectory_pub_;
             ros::Publisher filtered_past_trajectory_pub_;
+            ros::Publisher future_trajectory_pub_;
             ros::Publisher filtered_pose_pub_;
             ros::Publisher filtered_pose_array_pub_;
 

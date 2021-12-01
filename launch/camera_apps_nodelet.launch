@@ -30,7 +30,8 @@
       args="0 0 0 0 0 0 base_link laser">
   </node>
 
-  <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps.rviz" output="screen"/>
+  <!-- <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps.rviz" output="screen"/> -->
+  <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps_full.rviz" output="screen"/>
   <!-- <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps_colorful.rviz" output="screen"/> -->
 
   <node name="image_republish" pkg="image_transport" type="republish" args="compressed raw">

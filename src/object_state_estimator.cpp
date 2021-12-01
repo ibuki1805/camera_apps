@@ -17,6 +17,8 @@ namespace camera_apps
         pnh.param("ransac_dist_th", ransac_dist_th_, 0.01);
         pnh.param("through_th_z_min", through_th_z_min_, -70.0);
         pnh.param("through_th_z_max", through_th_z_max_, 2.0);
+        pnh.param("downsample_for_visualize", downsample_for_visualize_, true);
+        pnh.param("leafsize_for_visualize", leafsize_for_visualize_, 0.04);
 
         object_pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/object_state/object_pc", 1);
         centroids_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/object_state/centroids", 1);
@@ -50,6 +52,9 @@ namespace camera_apps
             sensor_msgs::PointCloud2 pc_msg_temp;
             pcl_ros::transformPointCloud(mat, *pc_msg, pc_msg_temp);
             pcl::fromROSMsg(pc_msg_temp, *input_pc_);
+            // if(input_pc_->points.size() != 480 * 640){
+            //     std::cout << "pc_size is wrong" << std::endl;
+            // }
             input_pc_->header.frame_id = "camera_fixed_frame";
         }
         catch(tf2::TransformException &ex){
@@ -75,8 +80,8 @@ namespace camera_apps
             // std::cout << "before: " << object_pc->points.size();
             through_filtering(object_pc);
             // std::cout << " after: " << object_pc->points.size() << std::endl;
-            downsampling(object_pc);
             // std::cout << "before: " << object_pc->points.size();
+            downsampling(object_pc);
             // std::cout << " after: " << object_pc->points.size() << std::endl;
             // std::cout << "before: " << object_pc->points.size();
             // surface_segmentation(object_pc);
@@ -91,15 +96,16 @@ namespace camera_apps
 
             geometry_msgs::PointStamped centroid = caluculate_centroid(object_pc);
             object_state.centroid = centroid;
-            // std::cout << "object_pc_size: " << object_pc_->points.size();
-            // std::cout << " centroid_x: " << centroid.point.x;
-            // std::cout << " centroid_y: " << centroid.point.y << std::endl;
 
             if(publish_object_pc_flag_) pcl::toROSMsg(*object_pc, object_state.object_pc);
 
             object_states_.object_states.push_back(object_state);
         }
+        // std::cout << "before: " << object_pcs_->points.size();
+        if(downsample_for_visualize_) downsampling_pcl(object_pcs_, leafsize_for_visualize_);
         object_pc_pub_.publish(object_pcs_);
+        // std::cout << " after: " << object_pcs_->points.size() << std::endl;
+
         centroids_pub_.publish(centroids_);
         object_states_pub_.publish(object_states_);
     }
@@ -135,26 +141,26 @@ namespace camera_apps
 
     void ObjectStateEstimator::downsampling(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
     {
-        int step = pc_in->points.size() / points_limit_;
-        if(step == 0) step = 1;
+        double step = pc_in->points.size() / (double)points_limit_;
+        if(step < 1) step = 1;
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmp_pc(new pcl::PointCloud<pcl::PointXYZRGB>);
 
         tmp_pc->header = pc_in->header;
         tmp_pc->is_dense = true;
 
-        for(int i=0; i<pc_in->points.size(); i+=step){
-            tmp_pc->points.push_back(pc_in->points[i]);
+        for(double i=0; i<pc_in->points.size(); i+=step){
+            tmp_pc->points.push_back(pc_in->points[(int)i]);
         }
         tmp_pc->width = tmp_pc->points.size();
         tmp_pc->height = 1;
 
         *pc_in = *tmp_pc;
     }
-    void ObjectStateEstimator::downsampling_pcl(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in)
+    void ObjectStateEstimator::downsampling_pcl(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in, double leafsize)
     {
         pcl::VoxelGrid<pcl::PointXYZRGB> vg;
         vg.setInputCloud(pc_in);
-        vg.setLeafSize(leafsize_, leafsize_, leafsize_);
+        vg.setLeafSize(leafsize, leafsize, leafsize);
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZRGB>);
         vg.filter(*tmp);

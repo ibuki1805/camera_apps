@@ -42,7 +42,7 @@ namespace camera_apps
             void adjust_bbox(camera_apps_msgs::BoundingBox& bbox);
             void create_object_pc(pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_pc, camera_apps_msgs::BoundingBox bbox);
             void downsampling(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
-            void downsampling_pcl(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
+            void downsampling_pcl(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in, double leafsize);
             void remove_outlier(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);           
             void coloring_pc(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in, int red, int green, int blue);
             bool clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr pc_in);
@@ -64,6 +64,8 @@ namespace camera_apps
             double ransac_dist_th_;
             double through_th_z_min_;
             double through_th_z_max_;
+            bool downsample_for_visualize_;
+            double leafsize_for_visualize_;
 
             camera_apps_msgs::BoundingBoxes bboxes_;
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr input_pc_ {new pcl::PointCloud<pcl::PointXYZRGB>};

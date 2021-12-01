@@ -3,3 +3,25 @@ time_threshold: 1.0
 # time_threshold: 2.0
 past_path_threshold: 50
 person_num_limit: 10
+colorful_trajectory_flag: false
+
+observation_noise_ratio: 0.05
+sigma_initial_P_theta: 6.2832
+sigma_initial_P_velocity: 3.0
+sigma_initial_P_omega: 3.1416
+# sigma_initial_P_omega: 6.2832
+sigma_Q_x: 3.0
+sigma_Q_y: 3.0
+sigma_Q_theta: 3.1416
+sigma_Q_velocity: 3.0
+sigma_Q_omega: 3.1416
+# sigma_Q_omega: 6.2832
+
+trajectory_z: 0.0
+data_num_th_visualize: 2
+data_num_th_mahalanovis: 6
+predict_time: 2.0
+predict_dt: 0.1
+calc_future_trajectory_flag: false
+visualize_future_trajectory_flag: false
+visualize_past_trajectory_flag: false
