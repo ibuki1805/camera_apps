@@ -44,6 +44,21 @@ target_link_libraries(object_detector_nodelet
     ${OpenCV_LIBRARIES}
 )
 
+add_executable(mask_rcnn_node src/mask_rcnn_node.cpp src/mask_rcnn.cpp)
+add_dependencies(mask_rcnn_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(
+    mask_rcnn_node
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+    )
+
+add_library(mask_rcnn_nodelet src/mask_rcnn.cpp src/mask_rcnn_nodelet.cpp)
+
+target_link_libraries(mask_rcnn_nodelet
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+)
+
 add_executable(object_state_estimator_node src/object_state_estimator_node.cpp src/object_state_estimator.cpp)
 add_dependencies(object_state_estimator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(
