@@ -58,6 +58,8 @@ namespace camera_apps
         std::string label_path = model_path_ + "/object_detection_classes_coco.txt";
 
         net_ = cv::dnn::readNet(proto_path, weight_path);
+        net_.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net_.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
         class_names_ = read_file(label_path);
 
         std::string colorsFile = model_path_ + "/colors.txt";
@@ -175,6 +177,10 @@ namespace camera_apps
         cv::Mat mask = (object_mask > mask_threshold_);
         cv::Mat colored_roi = (0.3 * color + 0.7 * image(rect));
         colored_roi.convertTo(colored_roi, CV_8UC3);
+        // cv::imshow("roi", colored_roi);
+        // int key = cv::waitKey(5);
+        // cv::imshow("mask", mask);
+        // int key = cv::waitKey(5);
 
         std::vector<cv::Mat> contours;
         cv::Mat hierarchy;

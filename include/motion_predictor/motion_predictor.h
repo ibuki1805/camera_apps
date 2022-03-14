@@ -11,11 +11,13 @@
 #include <nav_msgs/Path.h>
 
 #include <Eigen/Dense>
-// #include <Eigen/Core>
-// #include <Eigen/LU>
 
 #include <camera_apps_msgs/ObjectState.h>
 #include <camera_apps_msgs/ObjectStates.h>
+#include <camera_apps_msgs/ObjectInfo.h>
+#include <camera_apps_msgs/ObjectsInfo.h>
+
+#include "hungarian.h"
 
 namespace camera_apps
 {
@@ -31,6 +33,9 @@ namespace camera_apps
         Eigen::VectorXd X;
         Eigen::MatrixXd P;
         Eigen::MatrixXd K;
+        std::vector<float> color_hist;
+        
+        bool update_flag; 
     };
 
     class MotionPredictor
@@ -65,8 +70,23 @@ namespace camera_apps
             double calculate_euclidean_distance(PersonInfo registered_info, geometry_msgs::PointStamped input_centroid);
             double calculate_mahalanobis_distance(PersonInfo registered_info, geometry_msgs::PointStamped input_centroid);
             void calculate_future_trajectory(PersonInfo& person_info);
+            void add_to_tracking_result(PersonInfo person_info);
+            
+            std::vector<std::vector<double>> create_cost_mat(camera_apps_msgs::ObjectStates& object_states, std::vector<PersonInfo>& person_list);
+            std::vector<std::vector<double>> create_hist_cost_mat(camera_apps_msgs::ObjectStates& object_states, std::vector<PersonInfo>& person_list);
+
+            std::vector<std::vector<double>> create_transpose_mat(std::vector<std::vector<double>> mat);
+            std::vector<std::vector<double>> create_integrated_cost_mat(std::vector<std::vector<double>>& dist_cost_mat, std::vector<std::vector<double>>& hist_cost_mat);
+            std::vector<std::vector<double>> create_velocity_mat(camera_apps_msgs::ObjectStates& object_states, std::vector<PersonInfo>& person_list);
+        
+            std::vector<int> create_map(std::vector<std::vector<double>> cost_mat);
+            double compare_hist(std::vector<float> hist1, std::vector<float> hist2);
+            // bool is_duplicate(camera_apps_msgs::ObjectState& object_state);
+            bool is_duplicate(int index);
+
 
             double error_threshold_;
+            double hist_similarity_threshold_;
             double time_threshold_;
             int past_path_threshold_;
             int person_num_limit_;
@@ -80,6 +100,11 @@ namespace camera_apps
             bool calc_future_trajectory_flag_;
             bool visualize_future_trajectory_flag_;
             bool visualize_past_trajectory_flag_;
+            double register_th_;
+            double duplicate_th_;
+            double velocity_th_;
+            double dist_cost_ratio_;
+            double hist_cost_ratio_;
 
             double sigma_initial_P_theta_;
             double sigma_initial_P_velocity_;
@@ -96,6 +121,7 @@ namespace camera_apps
             std::vector<int> valid_id_list_;
             std::vector<PersonInfo> person_list_;
             camera_apps_msgs::ObjectStates object_states_;
+            camera_apps_msgs::ObjectsInfo tracking_result_;
 
             Eigen::MatrixXd Q_;
             Eigen::MatrixXd H_;
@@ -106,6 +132,7 @@ namespace camera_apps
             ros::Publisher future_trajectory_pub_;
             ros::Publisher filtered_pose_pub_;
             ros::Publisher filtered_pose_array_pub_;
+            ros::Publisher tracking_result_pub_;
 
             ros::Publisher past_trajectory_pub1_;
             ros::Publisher past_trajectory_pub2_;

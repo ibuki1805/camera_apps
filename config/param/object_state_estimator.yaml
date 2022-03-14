@@ -15,7 +15,7 @@ points_limit: 5000
 
 # parameters of clustering
 # cluster_tolerance: 0.025 #if points_limit == 5000
-# cluster_tolerance: 0.02 #if points_limit == 10000
+cluster_tolerance: 0.02 #if points_limit == 10000
 min_cluster_size: 100
 max_cluster_size: 20000
 

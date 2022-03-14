@@ -18,6 +18,16 @@
   </class>
 </library>
 
+<library path="lib/libperson_recognizer_nodelet">
+    <class name="camera_apps/PersonRecognizerNodelet"
+      type="camera_apps::PersonRecognizerNodelet"
+     base_class_type="nodelet::Nodelet">
+    <description>
+        PersonRecognizerNodelet.
+    </description>
+  </class>
+</library>
+
 <library path="lib/libobject_state_estimator_nodelet">
     <class name="camera_apps/ObjectStateEstimatorNodelet"
       type="camera_apps::ObjectStateEstimatorNodelet"
@@ -34,6 +44,16 @@
      base_class_type="nodelet::Nodelet">
     <description>
         MotionPredictorNodelet.
+    </description>
+  </class>
+</library>
+
+<library path="lib/libhog_detector_nodelet">
+    <class name="camera_apps/HogDetectorNodelet"
+      type="camera_apps::HogDetectorNodelet"
+     base_class_type="nodelet::Nodelet">
+    <description>
+        HogDetectorNodelet.
     </description>
   </class>
 </library>

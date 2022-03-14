@@ -29,7 +29,6 @@ namespace camera_apps
         pnh.param("visualize_past_trajectory_flag", visualize_past_trajectory_flag_, true);
         pnh.param("register_th", register_th_, 0.9);
         pnh.param("duplicate_th", duplicate_th_, 0.2);
-        pnh.param("velocity_th", velocity_th_, 5.0);
         pnh.param("dist_cost_ratio", dist_cost_ratio_, 1.0);
         pnh.param("hist_cost_ratio", hist_cost_ratio_, 1.0);
 
@@ -117,38 +116,43 @@ namespace camera_apps
     void MotionPredictor::object_states_callback(const camera_apps_msgs::ObjectStatesConstPtr &msg)
     {
         object_states_ = *msg;
-        if(object_states_.object_states.size() == 0) return;
 
         tracking_result_.objects_info.clear();
         tracking_result_.header =  object_states_.header;
 
+        // std::cout << "1" << std::endl;
         std::vector<std::vector<double>> dist_cost_mat = create_cost_mat(object_states_, person_list_);
-
-        // std::vector<std::vector<double>> hist_cost_mat = create_hist_cost_mat(object_states_, person_list_);
-        // std::vector<std::vector<double>> integrated_cost_mat = create_integrated_cost_mat(dist_cost_mat, hist_cost_mat);
-        // std::vector<std::vector<double>> velocity_mat = create_velocity_mat(object_states_, person_list_);
-        std::vector<int> map = create_map(dist_cost_mat); 
-        // std::vector<int> map = create_map(integrated_cost_mat); 
+        std::vector<std::vector<double>> hist_cost_mat = create_hist_cost_mat(object_states_, person_list_);
+        std::vector<std::vector<double>> integrated_cost_mat = create_integrated_cost_mat(dist_cost_mat, hist_cost_mat);
+        // std::cout << "2" << std::endl;
+        std::vector<int> map = create_map(integrated_cost_mat); 
+        // std::cout << "3" << std::endl;
         for(int i=0; i<map.size(); i++){
+            // std::cout << "5" << std::endl;
+            // std::cout << "idid: " << object_states_.object_states[i].label << std::endl;
             if(map[i] == -1){
+                // std::cout << "register" << std::endl;
                 if(object_states_.object_states[i].confidence >= register_th_ && !is_duplicate(i)){
                     std::cout << "register" << std::endl;
                     register_person(object_states_.object_states[i]);
                 }
+                // register_person(object_states_.object_states[i]);
             }
-            else if(dist_cost_mat[i][map[i]] < error_threshold_ && !is_duplicate(i)){
-            // else if(dist_cost_mat[i][map[i]] < error_threshold_ || (hist_cost_mat[i][map[i]] < hist_similarity_threshold_ && velocity_mat[i][map[i]] <= velocity_th_)){
-                // std::cout << "dist error " << dist_cost_mat[i][map[i]] << std::endl;
+            else if(dist_cost_mat[i][map[i]] < error_threshold_){
+                // std::cout << "error " << cost_mat[i][map[i]] << std::endl;
                 // std::cout << "update" << std::endl;
                 update_person(person_list_[map[i]].id, object_states_.object_states[i]);
             }
             else{
+                // std::cout << "register2" << std::endl;
+                // register_person(object_states_.object_states[i]);
                 if(object_states_.object_states[i].confidence >= register_th_ && !is_duplicate(i)){
-                    // std::cout << "register2" << std::endl;
+                    std::cout << "register2" << std::endl;
                     register_person(object_states_.object_states[i]);
                 }
             }
         }
+        // std::cout << "4" << std::endl;
 
         lost_judge();
         if(!colorful_trajectory_flag_){
@@ -157,8 +161,8 @@ namespace camera_apps
         else{
             visualize_trajectory2();
         }
-        visualize_trajectory2();
-        // visualize_filtered_trajectory();
+        // visualize_trajectory2();
+        visualize_filtered_trajectory();
         if(visualize_future_trajectory_flag_) visualize_future_trajectory();
         visualize_filtered_pose();
 
@@ -167,8 +171,10 @@ namespace camera_apps
             if(person_info.update_flag){
                 add_to_tracking_result(person_info);
                 person_info.update_flag = false;
+                // std::cout << person_info.id << " ";
             }
         }
+        std::cout << std::endl;
         tracking_result_pub_.publish(tracking_result_);
     }
 
@@ -280,7 +286,7 @@ namespace camera_apps
         int index = id_to_index(id);
         for(int i=0; i<valid_id_list_.size(); i++){
             if(valid_id_list_[i] == id){
-                // std::cout << "delete id: " << id << std::endl;
+                std::cout << "delete id: " << id << std::endl;
                 // person_list_[index].trajectory.poses.clear();
                 person_list_.erase(person_list_.begin() + index);
                 valid_id_list_.erase(valid_id_list_.begin() + i);
@@ -412,7 +418,6 @@ namespace camera_apps
     void MotionPredictor::visualize_filtered_pose()
     {
         geometry_msgs::PoseArray filtered_pose_array;
-        if(person_list_.size() == 0) return;
         filtered_pose_array.header.frame_id = person_list_[0].trajectory.header.frame_id;
         for(const auto& person_info: person_list_){
             if(person_info.filtered_trajectory.poses.size() >= data_num_th_visualize_){
@@ -605,6 +610,8 @@ namespace camera_apps
     {
         camera_apps_msgs::ObjectInfo object_info;
         object_info.id = person_info.id;
+        std::cout << " id: " <<  object_info.id;
+        // std::cout << "id: " <<  object_info.id << std::endl;
         object_info.centroid.x = person_info.X(0);
         object_info.centroid.y = person_info.X(1);
         // object_info.centroid = person_info.centroid.point;
@@ -619,13 +626,14 @@ namespace camera_apps
             for(const auto& person_info: person_list){
                 double mahalanobis_error = calculate_mahalanobis_distance(person_info, object_state.centroid);
                 double error = calculate_euclidean_distance(person_info, object_state.centroid);
+                // std::cout << std::endl;
                 // std::cout << "eu dist: " << error << " maha dist: " << mahalanobis_error << std::endl;
+                // std::cout << std::endl;
                 if(error > mahalanobis_error) error = mahalanobis_error;
                 cost_row.push_back(error);
             }
             cost_mat.push_back(cost_row);
         }
-        // std::cout << "dist mat" << std::endl;
         // for(const auto& row: cost_mat){
         //     for(const auto& num: row){
         //         std::cout << std::setw(5) << num << " ";
@@ -643,12 +651,12 @@ namespace camera_apps
             std::vector<double> cost_row;
             for(const auto& person_info: person_list){
                 double similarity = compare_hist(person_info.color_hist, object_state.color_hist);
+                // std::cout << "siila: " << similarity << std::endl;
                 double error = 1.0 - similarity;
                 cost_row.push_back(error);
             }
             cost_mat.push_back(cost_row);
         }
-        // std::cout << "hist mat" << std::endl;
         // for(const auto& row: cost_mat){
         //     for(const auto& num: row){
         //         std::cout << std::setw(5) << num << " ";
@@ -732,7 +740,7 @@ namespace camera_apps
             double y_child = object_states_.object_states[i].centroid.point.y;
             double dist = std::sqrt(std::pow(x_parent - x_child, 2) + std::pow(y_parent - y_child, 2));
             if(dist <= duplicate_th_){
-               // std::cout << "duplicate!" << std::endl;
+               std::cout << "duplicate!" << std::endl;
                return true;
             }
         }
@@ -743,28 +751,12 @@ namespace camera_apps
     {
         std::vector<std::vector<double>> integrated_cost_mat(dist_cost_mat.size(), std::vector<double>(dist_cost_mat[0].size()));
         for(int i=0; i<dist_cost_mat.size(); i++){
-            for(int j=0; j<dist_cost_mat[0].size(); j++){
+            for(int j=0; j<dist_cost_mat[0].size(); i++){
                 integrated_cost_mat[i][j] = dist_cost_mat[i][j] * dist_cost_ratio_ + 
                     hist_cost_mat[i][j] * hist_cost_ratio_;
             }
         }
         return integrated_cost_mat;
-    }
-    std::vector<std::vector<double>> MotionPredictor::create_velocity_mat(camera_apps_msgs::ObjectStates& object_states, std::vector<PersonInfo>& person_list)
-    {
-        std::vector<std::vector<double>> velocity_mat;
-        for(const auto& object_state: object_states.object_states){
-            std::vector<double> velocity_row;
-            for(const auto& person_info: person_list){
-                double dt = (object_state.centroid.header.stamp - person_info.latest_time).nsec / std::pow(10, 9);
-                double dist = calculate_euclidean_distance(person_info, object_state.centroid);
-                double velocity = dist / dt;
-                velocity_row.push_back(dt);
-                // std::cout << "velo: " << velocity << std::endl;
-            }
-            velocity_mat.push_back(velocity_row);
-        }
-        return velocity_mat;
     }
 }
 

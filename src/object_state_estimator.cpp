@@ -98,14 +98,11 @@ namespace camera_apps
             object_state.centroid = centroid;
 
             if(publish_object_pc_flag_) pcl::toROSMsg(*object_pc, object_state.object_pc);
-
             object_states_.object_states.push_back(object_state);
         }
         // std::cout << "before: " << object_pcs_->points.size();
         if(downsample_for_visualize_) downsampling_pcl(object_pcs_, leafsize_for_visualize_);
         object_pc_pub_.publish(object_pcs_);
-        // std::cout << " after: " << object_pcs_->points.size() << std::endl;
-
         centroids_pub_.publish(centroids_);
         object_states_pub_.publish(object_states_);
     }
@@ -267,6 +264,5 @@ namespace camera_apps
         pass.setFilterFieldName("z");
         pass.setFilterLimits(through_th_z_min_, through_th_z_max_);
         pass.filter(*pc_in);
-        // std::cout << " 1 " << std::endl;
     }
 }

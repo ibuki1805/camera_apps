@@ -66,6 +66,7 @@ namespace camera_apps
         // bbox_.header.stamp = msg_stamp_;
 
         cv::Mat blob = cv::dnn::blobFromImage(image, 1, cv::Size(300, 300));
+        // cv::Mat blob = cv::dnn::blobFromImage(image, 1, cv::Size(image.cols, image.rows), cv::Scalar());
         net_.setInput(blob);
         cv::Mat pred = net_.forward();
         cv::Mat pred_mat(pred.size[2], pred.size[3], CV_32F, pred.ptr<float>());
@@ -84,6 +85,7 @@ namespace camera_apps
                 std::string class_name = class_names_[id-1];
                 std::string label = class_name + ":" + std::to_string(conf).substr(0, 4);
                 if(id == 1){
+                // if(true){
                     set_bbox(x0, x1, y0, y1, conf, id, class_name);
                     // send_bbox(x0, x1, y0, y1, conf, id, class_name);
                     draw_bbox(image, x0, y0, x1, y1, label);
