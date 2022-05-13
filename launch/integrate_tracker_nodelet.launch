@@ -24,12 +24,12 @@
       args="0 0 0 0 0 0 vicon/camera/camera camera_fixed_frame">
   </node>
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_camera_to_velodyne"
-      args="0 0 0 0 0 0 velodyne camera_fixed_frame">
-  </node>
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="tf_camera_to_velodyne" -->
+  <!--     args="0 0 0 0 0 0 velodyne camera_fixed_frame"> -->
+  <!-- </node> -->
 
-  <!-- <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps.rviz" output="screen"/> -->
-  <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps_colorful2.rviz" output="screen"/>
+  <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps.rviz" output="screen"/>
+  <!-- <node pkg="rviz" name="rviz" type="rviz" args="-d $(find camera_apps)/config/rviz/camera_apps_colorful2.rviz" output="screen"/> -->
 
   <node name="image_republish" pkg="image_transport" type="republish" args="compressed raw">
       <remap from="in" to="/camera/color/image_raw/" />

@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(Eigen3 REQUIRED)
 
-SET(OCV_VERSION "4.5.1")
+SET(OCV_VERSION "4.5.5")
 find_package(OpenCV ${OCV_VERSION})
 
 catkin_package(
