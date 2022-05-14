@@ -132,7 +132,7 @@ namespace camera_apps
         for(int i=0; i<map.size(); i++){
             if(map[i] == -1){
                 if(object_states_.object_states[i].confidence >= register_th_ && !is_duplicate(i)){
-                    std::cout << "register" << std::endl;
+                    // std::cout << "register" << std::endl;
                     register_person(object_states_.object_states[i]);
                 }
             }
@@ -392,12 +392,10 @@ namespace camera_apps
 
     void MotionPredictor::visualize_filtered_trajectory()
     {
-        std::cout << "person_num: " << person_list_.size() << std::endl;
         for(const auto& person_info: person_list_){
             if(person_info.filtered_trajectory.poses.size() >= data_num_th_visualize_){
 
                 filtered_past_trajectory_pub_.publish(person_info.filtered_trajectory);
-                std::cout << "frame " << person_info.filtered_trajectory.header << std::endl;
             }
         }
     }

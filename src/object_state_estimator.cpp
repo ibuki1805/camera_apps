@@ -52,9 +52,6 @@ namespace camera_apps
             sensor_msgs::PointCloud2 pc_msg_temp;
             pcl_ros::transformPointCloud(mat, *pc_msg, pc_msg_temp);
             pcl::fromROSMsg(pc_msg_temp, *input_pc_);
-            // if(input_pc_->points.size() != 480 * 640){
-            //     std::cout << "pc_size is wrong" << std::endl;
-            // }
             input_pc_->header.frame_id = "camera_fixed_frame";
         }
         catch(tf2::TransformException &ex){
@@ -77,15 +74,11 @@ namespace camera_apps
 
             adjust_bbox(bbox);
             create_object_pc(object_pc, bbox);
-            // std::cout << "before: " << object_pc->points.size();
             through_filtering(object_pc);
-            // std::cout << " after: " << object_pc->points.size() << std::endl;
-            // std::cout << "before: " << object_pc->points.size();
             downsampling(object_pc);
             // std::cout << " after: " << object_pc->points.size() << std::endl;
             // std::cout << "before: " << object_pc->points.size();
             // surface_segmentation(object_pc);
-            // std::cout << " after: " << object_pc->points.size() << std::endl;
             if(!clustering(object_pc)){
                 // std::cout << "cannot clustering!!" << std::endl;
                 continue;
@@ -100,7 +93,6 @@ namespace camera_apps
             if(publish_object_pc_flag_) pcl::toROSMsg(*object_pc, object_state.object_pc);
             object_states_.object_states.push_back(object_state);
         }
-        // std::cout << "before: " << object_pcs_->points.size();
         if(downsample_for_visualize_) downsampling_pcl(object_pcs_, leafsize_for_visualize_);
         object_pc_pub_.publish(object_pcs_);
         centroids_pub_.publish(centroids_);
