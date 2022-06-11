@@ -58,6 +58,10 @@ namespace camera_apps
 
         net_ = cv::dnn::readNet(proto_path, weight_path);
         class_names_ = read_file(label_path);
+
+        net_.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net_.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
+
     }
 
     void ObjectDetector::object_detect(cv::Mat &image)
@@ -114,7 +118,7 @@ namespace camera_apps
     // {
     //     bbox_.confidence = conf;
     //     bbox_.xmin = x0;
-    //     bbox_.xmax = x1; 
+    //     bbox_.xmax = x1;
     //     bbox_.ymin = y0;
     //     bbox_.ymax = y1;
     //     bbox_.id = id;
@@ -126,10 +130,10 @@ namespace camera_apps
             int id, std::string class_name)
     {
         camera_apps_msgs::BoundingBox bbox;
-        
+
         bbox.confidence = conf;
         bbox.xmin = x0;
-        bbox.xmax = x1; 
+        bbox.xmax = x1;
         bbox.ymin = y0;
         bbox.ymax = y1;
         bbox.id = id;
